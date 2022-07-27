@@ -112,13 +112,13 @@ def validate_nft(**args):
             'owner': 'owner is not an int'
         }
     return True
-    
+
 trade_validation_schema = {
   "type": "object",
   "properties": {
-    "unique": { "type": "string" },
+    "unique_string": { "type": "string" },
     "status": { "type": "boolean" },
-    "owner": { "type": "int" }
+    "owner": { "type": "integer" }
   },
-  "required": ["email"]
+  "required": ["unique_string"]
 }

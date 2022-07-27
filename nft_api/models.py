@@ -1,6 +1,4 @@
-
-from xml.etree.ElementInclude import default_loader
-from nft_api import app, db
+from nft_api import app, db, ROW_PER_PAGE
 from passlib.apps import custom_app_context as pwd_context
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import Serializer, BadSignature, SignatureExpired
@@ -125,6 +123,9 @@ class NFT(db.Model):
         db.session.commit()
         return self.get_by_id(new_nft.id)
 
+    def serch(self, name):
+        return self.quearyset_to_list(self.query.filter(NFT.name.like("%" + name + "%")).all())
+
     def get_all(self):
         return self.queryset_to_list(self.query.all())
 
@@ -187,29 +188,42 @@ class Trades(db.Model):
     owner = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def create(self, *args, **kwargs):
+        if not kwargs.get("unique_string"):
+            kwargs["unique_string"] = self.generate_unique_string()
+
         new_trades = Trades(**kwargs)
         db.session.add(new_trades)
         db.session.commit()
+        _nfts = kwargs.get("nfts")
+        if _nfts:
+            if isinstance(_nfts, list):
+                for nft in _nfts:
+                    self.add_nft(new_trades, nft)
+
+        
         return self.get_by_id(new_trades.id)
-    
-    def add_nft(self, nft_id):
+
+    def search(self, unique_string):
+        return self.queryset_to_list(self.query.filter(Trades.unique_string.like("%" + unique_string + "%")).all())
+
+    def add_nft(self, trade, nft_id):
         nft = NFT.query.filter_by(id=nft_id).first()
         if not nft:
             return
-        self.nfts.append(nft)
+        if nft not in trade.nfts: 
+            trade.nfts.append(nft)
+        
         db.session.commit()
         return self.get_by_id(self.id)
-
+    
     def get_trade_nfts(self, trade_id):
         trade = self.get_by_id_obj(trade_id)
-        trade.nfts
-        db.session.commit()
-        return self.get_by_id(self.id)
+        return self.get_all_from_queryset(trade.nfts) 
         
     def get_all(self):
         return self.queryset_to_list(self.query.all())
 
-    def get_all_from_querset(self, queryset):
+    def get_all_from_queryset(self, queryset):
         return self.queryset_to_list(queryset)
 
     def user_get_all(self, owner_id):
@@ -234,9 +248,24 @@ class Trades(db.Model):
         db.session.commit()
     
     def update_one(self, id, *args, **kwargs):
+        if kwargs.get("status"):
+            if kwargs["status"] == "True" or kwargs["status"] == "true" :
+                kwargs["status"] = True
+            else:
+                kwargs["status"] = False
+        else:
+            kwargs["status"] = False
+
         get_obj = self.get_by_id_obj(id)
         for key, value in kwargs.items():
-            setattr(get_obj, key, value)
+            if key != "nfts":
+                setattr(get_obj, key, value)
+        _nfts = kwargs.get("nfts")
+        if _nfts:
+            print(isinstance(_nfts, list))
+            if isinstance(_nfts, list):
+                for nft in _nfts:
+                    self.add_nft(get_obj, nft)
         db.session.commit()
 
     def get_by_id_obj(self, id):

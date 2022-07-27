@@ -1,4 +1,4 @@
-from nft_api import app, db, env, auth, authentication, nft, git_update
+from nft_api import app, db, env, auth, authentication, nft, trades, git_update
 from nft_api.models import User
 import migrate_manager
 
