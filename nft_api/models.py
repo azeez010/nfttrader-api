@@ -9,7 +9,7 @@ from flask_login import UserMixin
 nft_trades = db.Table('nft_trades', db.Column('nft_id', db.Integer, db.ForeignKey('nft.id')), db.Column('trades_id', db.Integer, db.ForeignKey('trades.id')))
 
 class User(db.Model, UserMixin):
-    __tablename__ = 'users'
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key = True)
     email = db.Column(db.String(32), index = True)
     password = db.Column(db.String(128))
