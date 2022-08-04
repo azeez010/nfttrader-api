@@ -2,12 +2,39 @@ from flask import request, jsonify
 from nft_api.jwt_auth import token_required, admin_token_required
 from nft_api import app, db, models
 from nft_api.validate import validate_nft
+import requests
 
 @app.route("/api/nft/", methods=["POST"])
 @token_required
 def add_nft(current_user):
     try:
+
+#     import fetch from 'node-fetch';
+
+#   var requestOptions = {
+#     method: 'GET',
+#     redirect: 'follow'
+#   };  
         nft = request.json
+
+        for _nft in nft:
+            apiKey = "23eL-CvsUZDMJ-qvtj7UVg_VFiy4LMrj"
+            baseURL = f"https://eth-mainnet.alchemyapi.io/nft/v2/{apiKey}/getNFTMetadata"
+            contractAddr = _nft.get("nftToken")
+            # "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d"
+            tokenId = "2"
+            tokenType = "erc721"
+            fetchURL = f"{baseURL}?contractAddress={contractAddr}&tokenId={tokenId}&tokenType={tokenType}"
+
+            headers = {"Accept": "application/json"}
+
+            # response = requests.get(fetchURL, headers=headers)
+
+            # print(response.json())
+            
+            nft = request.json
+            # print(_nft, 2)
+
         if not nft:
             return {
                 "message": "Invalid data, you need to give the nft name, image and address",

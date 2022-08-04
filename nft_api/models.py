@@ -1,3 +1,5 @@
+import uuid
+from datetime import datetime
 from nft_api import app, db, ROW_PER_PAGE
 from passlib.apps import custom_app_context as pwd_context
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,10 +12,24 @@ class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key = True)
     email = db.Column(db.String(32), index = True)
-    password = db.Column(db.String(128))
+    password = db.Column(db.String(256))
     name = db.Column(db.String(128))
     image = db.Column(db.String(128))
     admin = db.Column(db.Boolean, default=False) 
+    account = db.Column(db.String(128), unique=True)
+    network_id = db.Column(db.Integer)
+    nonce = db.Column(db.String(128))
+    network_name = db.Column(db.String(64))
+    avatar = db.Column(db.String(128))
+    wallet_provider = db.Column(db.String(32))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def get_nonce(self, address):
+        if address:
+            obj = self.query.filter_by(account=address).first()
+            if obj:
+                return obj.nonce
+        return ""
 
     def hash_password(self, password):
         self.password = generate_password_hash(password)
@@ -43,20 +59,32 @@ class User(db.Model, UserMixin):
         user = User.query.get(data['id'])
         return user
 
-    def create(self, name="", email="", password="", admin=False):
+    def create(self, name="", email="", password="", account="", admin=False):
         """Create a new user"""
-        user = self.get_by_email(email)
-        if user:
-            return
-        new_user = User(name=name, email= email, password=self.encrypt_password(password), admin=admin)
+        if admin:
+            user = self.get_by_email(email)
+            if user:
+                return
+            new_user = User(name=name, email=email, password=self.encrypt_password(password), admin=admin)
+        else:
+            user = self.get_by_email(email)
+            if user:
+                return
+            new_user = User(name=name, email=account, account=account, password=password, admin=admin, nonce=uuid.uuid4().hex)
+
         db.session.add(new_user)
         db.session.commit()
         return self.get_by_id(new_user.id)
 
+
     def get_all(self):
-        """Get all users"""
-        users = db.users.find({"active": True})
-        return [{**user, "_id": str(user["_id"])} for user in users]
+        return self.queryset_to_list(self.query.all())
+
+    def queryset_to_list(self, queryset):
+        l = []
+        for obj in queryset:
+            l.append(self.row2dict(obj))
+        return l
 
     def get_by_id(self, user_id):
         """Get a user by id"""
@@ -67,6 +95,18 @@ class User(db.Model, UserMixin):
         user.pop("password")
         return user
 
+    def get_by_id_obj(self, id):
+        """Get a user by id"""
+        obj = self.query.filter_by(id=id).first()
+        if not obj:
+            return
+        return obj
+
+    def delete_one(self, id):
+        del_obj = self.get_by_id_obj(id)
+        db.session.delete(del_obj)
+        db.session.commit()
+
     def get_by_email(self, email):
         """Get a user by user"""
         user = self.query.filter_by(email=email).first()
@@ -75,19 +115,11 @@ class User(db.Model, UserMixin):
         user = self.row2dict(user)
         return user
 
-    def update(self, user_id, name=""):
-        """Update a user"""
-        data = {}
-        if name:
-            data["name"] = name
-        user = db.users.update_one(
-            {"_id": bson.ObjectId(user_id)},
-            {
-                "$set": data
-            }
-        )
-        user = self.get_by_id(user_id)
-        return user
+    def update_one(self, id, *args, **kwargs):
+        get_obj = self.get_by_id_obj(id)
+        for key, value in kwargs.items():
+            setattr(get_obj, key, value)
+        db.session.commit()
 
     def delete(self, user_id):
         """Delete a user"""
@@ -104,8 +136,12 @@ class User(db.Model, UserMixin):
     def login(self, email, password):
         """Login a user"""
         user = self.get_by_email(email)
-        if not user or not check_password_hash(user["password"], password):
-            return
+        if user["admin"] == "True":
+            if not user or not check_password_hash(user["password"], password):
+                return
+        else:
+            if not user or user["email"] != email or user["password"] != password:
+                return
         user.pop("password")
         return user
 
@@ -186,7 +222,8 @@ class Trades(db.Model):
     # NFT Many to Many field
     nfts = db.relationship('NFT', secondary=nft_trades, backref="trades")
     owner = db.Column(db.Integer, db.ForeignKey('user.id'))
-
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
     def create(self, *args, **kwargs):
         if not kwargs.get("unique_string"):
             kwargs["unique_string"] = self.generate_unique_string()
@@ -221,7 +258,7 @@ class Trades(db.Model):
         return self.get_all_from_queryset(trade.nfts) 
         
     def get_all(self):
-        return self.queryset_to_list(self.query.all())
+        return self.queryset_to_list(self.query.order_by(self.created_at.desc()).all())
 
     def get_all_from_queryset(self, queryset):
         return self.queryset_to_list(queryset)

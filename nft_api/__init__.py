@@ -28,3 +28,4 @@ if env.str("DEBUG", default=True) == False:
 db = SQLAlchemy(app)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 ROW_PER_PAGE = env.int("ROW_PER_PAGE", default=10)
+

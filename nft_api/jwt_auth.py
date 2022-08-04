@@ -44,7 +44,6 @@ def admin_token_required(f):
         token = None
         if "Authorization" in request.headers:
             token = request.headers["Authorization"].split(" ")[1]
-        print(token)
         if not token:
             return {
                 "message": "Authentication Token is missing!",
