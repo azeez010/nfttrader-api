@@ -345,5 +345,6 @@ class Trades(db.Model):
         obj = self.row2dict(obj)
         return obj
 
+# Webhook
 # SetApprovalForAll
 # Parameters: true
