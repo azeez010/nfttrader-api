@@ -138,6 +138,8 @@ class User(db.Model, UserMixin):
     def login(self, email, password):
         """Login a user"""
         user = self.get_by_email(email)
+        print(user)
+
         if user["admin"] == "True":
             if not user or not check_password_hash(user["password"], password):
                 return
@@ -145,6 +147,7 @@ class User(db.Model, UserMixin):
             if not user or user["email"] != email or user["password"] != password:
                 return
         user.pop("password")
+        print("got")
         return user
 
 class NFT(db.Model):
