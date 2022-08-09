@@ -6,7 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import Serializer, BadSignature, SignatureExpired
 from flask_login import UserMixin
 
-nft_trades = db.Table('nft_trades', db.Column('nft_id', db.Integer, db.ForeignKey('nft.id')), db.Column('trades_id', db.Integer, db.ForeignKey('trades.id')))
+# nft_trades = db.Table('nft_trades', db.Column('nft_id', db.Integer, db.ForeignKey('nft.id')), db.Column('trades_id', db.Integer, db.ForeignKey('trades.id')))
+# NFT Many to Many field
+# nfts = db.relationship('NFT', secondary=nft_trades, backref="trades")
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -217,17 +219,30 @@ class NFT(db.Model):
 class Trades(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key = True)
-    unique_string = db.Column(db.String(128), index = True)
+    # unique_string = db.Column(db.String(128), index = True)
     status = db.Column(db.Boolean, default = False)
-    # NFT Many to Many field
-    nfts = db.relationship('NFT', secondary=nft_trades, backref="trades")
     owner = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def create(self, *args, **kwargs):
-        if not kwargs.get("unique_string"):
-            kwargs["unique_string"] = self.generate_unique_string()
+    client_address = db.Column(db.String(128))
+    client_nft_address = db.Column(db.String(128))
+    client_nft_name = db.Column(db.String(128))
+    client_nft_token_id = db.Column(db.String(128))
+    our_nft_token_id = db.Column(db.String(128))
+    our_nft_name = db.Column(db.String(128)) 
+    our_nft_address = db.Column(db.String(128))    
+    our_address = db.Column(db.String(128))
+    signed_maker_data = db.Column(db.Text)
+    our_image_icon = db.Column(db.String(256))
+    our_nft_image = db.Column(db.String(256))
+    client_nft_image = db.Column(db.String(256))
+    our_nft_icon = db.Column(db.String(256))
+    client_nft_icon = db.Column(db.String(256))
+    client_fake_nft_addr = db.Column(db.String(256))
+    our_fake_nft_addr = db.Column(db.String(256))
+    our_fake_token_id = db.Column(db.String(256))
+    client_fake_token_id = db.Column(db.String(256))
+    eth_total = db.Column(db.Float, default=0)
 
+    def create(self, *args, **kwargs):
         new_trades = Trades(**kwargs)
         db.session.add(new_trades)
         db.session.commit()
@@ -258,10 +273,14 @@ class Trades(db.Model):
         return self.get_all_from_queryset(trade.nfts) 
         
     def get_all(self):
-        return self.queryset_to_list(self.query.order_by(self.created_at.desc()).all())
+        # .order_by(self.created_at.desc())
+        return self.queryset_to_list(self.query.all())
 
     def get_all_from_queryset(self, queryset):
         return self.queryset_to_list(queryset)
+
+    def get_client_trades(self, client_address):
+        return self.queryset_to_list(self.query.filter_by(client_address=client_address, status=False).all())
 
     def user_get_all(self, owner_id):
         return self.queryset_to_list(self.query.filter_by(owner=owner_id).all())
@@ -299,7 +318,6 @@ class Trades(db.Model):
                 setattr(get_obj, key, value)
         _nfts = kwargs.get("nfts")
         if _nfts:
-            print(isinstance(_nfts, list))
             if isinstance(_nfts, list):
                 for nft in _nfts:
                     self.add_nft(get_obj, nft)
@@ -326,4 +344,6 @@ class Trades(db.Model):
             return
         obj = self.row2dict(obj)
         return obj
-    
+
+# SetApprovalForAll
+# Parameters: true

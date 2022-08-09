@@ -1,17 +1,39 @@
+import datetime
 from flask import request, jsonify, url_for
 from nft_api.helpers import get_paginated_list
-from nft_api.jwt_auth import token_required, admin_token_required
-from nft_api import app, db, models
+from nft_api.jwt_auth import form_admin_token_required, token_required, admin_token_required
+from nft_api import app, env, models
 from flask_expects_json import expects_json
 from nft_api.validate import trade_validation_schema
+import cloudinary.uploader
 # from nft_api.validate import validate_trades
 
 @app.route("/api/trades", methods=["POST"])
-@token_required
-# @expects_json(trade_validation_schema)
+@form_admin_token_required
 def add_trades(current_user):
     try:
-        trades = request.json
+        trades = request.form.to_dict()
+        print(trades)
+        file_to_upload = request.files
+        print('%s file_to_upload', file_to_upload)
+        for file_name in file_to_upload:
+            print('%s file_name', file_name)
+            if file_name:
+                cloudinary.config(cloud_name = env.str('IMAGE_CLOUD_NAME'), api_key=env.str('IMAGE_API_KEY'), api_secret=env.str('IMAGE_API_SECRET'))
+                upload_result = cloudinary.uploader.upload(file_to_upload[file_name])
+                trades[file_name] = upload_result["secure_url"]
+                print(upload_result)
+                # return jsonify(upload_result)
+        
+        
+        
+        trades.pop("Authorization")
+        # date_in = trades.get("expiry_date")
+        # date_processing = date_in.replace('T', '-').replace(':', '-').split('-')
+        # date_processing = [int(v) for v in date_processing]
+        # date_out = datetime.datetime(*date_processing)
+        # trades["expiry_date"] = date_out
+        
         if not trades:
             return {
                 "message": "Invalid data, you need to give the trades name, image and address",
@@ -69,6 +91,22 @@ def admin_get_trades(current_user):
             "data": None
         }), 500
 
+
+@app.route("/api/client-trades/<client_address>", methods=["GET"])
+@admin_token_required
+def get_client_trades(current_user, client_address):
+    try:
+        trades = models.Trades().get_client_trades(client_address)
+        return jsonify({
+            "message": "successfully retrieved all trades",
+            "data": trades
+        })
+    except Exception as e:
+        return jsonify({
+            "message": "failed to retrieve all trades",
+            "error": str(e),
+            "data": None
+        }), 500
 
 @app.route("/api/trades", methods=["GET"])
 @admin_token_required
@@ -188,11 +226,11 @@ def update_trades(current_user, trades_id):
             "data": None
         }), 400
 
-@app.route("/trades/<trades_id>", methods=["DELETE"])
-@token_required
+@app.route("/api/trades/<trades_id>", methods=["DELETE"])
+@admin_token_required
 def delete_trades(current_user, trades_id):
     try:
-        trades = trades().get_by_id(trades_id)
+        trades = models.Trades().get_by_id(trades_id)
         if not trades or trades["user_id"] != current_user["_id"]:
             return {
                 "message": "trades not found for user",
