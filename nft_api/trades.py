@@ -9,8 +9,9 @@ import cloudinary.uploader
 # from nft_api.validate import validate_trades
 
 @app.route("/api/trades", methods=["POST"])
-@form_admin_token_required
-def add_trades(current_user):
+# @form_admin_token_required
+# current_user
+def add_trades():
     try:
         trades = request.form.to_dict()
         print(trades)
