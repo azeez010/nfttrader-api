@@ -219,13 +219,14 @@ class NFT(db.Model):
 class Trades(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key = True)
-    # unique_string = db.Column(db.String(128), index = True)
     status = db.Column(db.Boolean, default = False)
     owner = db.Column(db.Integer, db.ForeignKey('user.id'))
     client_address = db.Column(db.String(128))
     client_nft_address = db.Column(db.String(128))
     client_nft_name = db.Column(db.String(128))
     client_nft_token_id = db.Column(db.String(128))
+    our_fake_address = db.Column(db.String(128))
+    our_fake_name = db.Column(db.String(128))
     our_nft_token_id = db.Column(db.String(128))
     our_nft_name = db.Column(db.String(128)) 
     our_nft_address = db.Column(db.String(128))    
