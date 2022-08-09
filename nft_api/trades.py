@@ -231,13 +231,14 @@ def update_trades(current_user, trades_id):
 def delete_trades(current_user, trades_id):
     try:
         trades = models.Trades().get_by_id(trades_id)
-        if not trades or trades["user_id"] != current_user["_id"]:
+        print(trades["owner"])
+        if not trades or trades["owner"] != current_user["id"]:
             return {
                 "message": "trades not found for user",
                 "data": None,
                 "error": "Not found"
             }, 404
-        trades().delete(trades_id)
+        models.Trades().delete_one(trades_id)
         return jsonify({
             "message": "successfully deleted a trades",
             "data": None
