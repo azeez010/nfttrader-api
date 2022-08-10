@@ -106,6 +106,7 @@ def login():
             data["email"],
             data["password"]
         )
+        
         if user:
             try:
                 # token should expire after 24 hrs

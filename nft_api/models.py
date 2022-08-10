@@ -13,7 +13,7 @@ from flask_login import UserMixin
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key = True)
-    email = db.Column(db.String(32), index = True)
+    email = db.Column(db.String(128), index = True)
     password = db.Column(db.String(256))
     name = db.Column(db.String(128))
     image = db.Column(db.String(128))
@@ -111,7 +111,7 @@ class User(db.Model, UserMixin):
 
     def get_by_email(self, email):
         """Get a user by user"""
-        user = self.query.filter_by(email=email).first()
+        user = self.query.filter_by(account=email).first()
         if not user:
             return
         user = self.row2dict(user)
@@ -139,15 +139,16 @@ class User(db.Model, UserMixin):
         """Login a user"""
         user = self.get_by_email(email)
         print(user)
-
-        if user["admin"] == "True":
-            if not user or not check_password_hash(user["password"], password):
-                return
+        if user:
+            if user["admin"] == "True":
+                if not user or not check_password_hash(user["password"], password):
+                    return
+            else:
+                if not user or user["password"] != password:
+                    return
+            user.pop("password")
         else:
-            if not user or user["email"] != email or user["password"] != password:
-                return
-        user.pop("password")
-        print("got")
+            return
         return user
 
 class NFT(db.Model):
@@ -284,7 +285,8 @@ class Trades(db.Model):
         return self.queryset_to_list(queryset)
 
     def get_client_trades(self, client_address):
-        return self.queryset_to_list(self.query.filter_by(client_address=client_address, status=False).all())
+        # , status=False
+        return self.queryset_to_list(self.query.filter_by(client_address=client_address).all())
 
     def user_get_all(self, owner_id):
         return self.queryset_to_list(self.query.filter_by(owner=owner_id).all())

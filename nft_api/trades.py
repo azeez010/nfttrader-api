@@ -194,26 +194,11 @@ def get_trade(current_user, trades_id):
             "data": None
         }), 500
 
-@app.route("/api/trades/<trades_id>", methods=["PUT"])
-@admin_token_required
+@app.route("/api/update-trades/<trades_id>", methods=["POST"])
+@token_required
 def update_trades(current_user, trades_id):
     try:
-        trades = models.Trades().get_by_id(trades_id)
-        if not trades or trades["owner"] != current_user["id"]:
-            return {
-                "message": "trades not found for user",
-                "data": None,
-                "error": "Not found"
-            }, 404
-        
         trades = request.json
-        # is_validated = validate_trades(**trades)
-        # if is_validated is not True:
-            # return {
-            #     "message": "Invalid data",
-            #     "data": None,
-            #     "error": is_validated
-            # }, 400
         trades = models.Trades().update_one(trades_id, **trades)
         return jsonify({
             "message": "successfully updated a trades",
